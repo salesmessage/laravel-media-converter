@@ -9,50 +9,6 @@ class DefaultMediaConvertJobSettings
         return [
             'OutputGroups' => [
                 [
-                    'CustomName' => 'Thumbnails',
-                    'Name' => 'File Group',
-                    'Outputs' => [
-                        [
-                            'ContainerSettings' => [
-                                'Container' => 'RAW',
-                            ],
-                            'VideoDescription' => [
-                                'ScalingBehavior' => 'DEFAULT',
-                                'TimecodeInsertion' => 'DISABLED',
-                                'AntiAlias' => 'ENABLED',
-                                'Sharpness' => 50,
-                                'CodecSettings' => [
-                                    'Codec' => 'FRAME_CAPTURE',
-                                    'FrameCaptureSettings' => [
-                                        'FramerateNumerator' => null, // to be set dynamically
-                                        'FramerateDenominator' => null, // to be set dynamically
-                                        'MaxCaptures' => null, // to be set dynamically
-                                        'Quality' => null, // to be set dynamically
-                                    ],
-                                ],
-                                'AfdSignaling' => 'NONE',
-                                'DropFrameTimecode' => 'ENABLED',
-                                'RespondToAfd' => 'NONE',
-                                'ColorMetadata' => 'INSERT',
-                                'Width' => null, // to be set dynamically
-                            ],
-                        ],
-                    ],
-                    'OutputGroupSettings' => [
-                        'Type' => 'FILE_GROUP_SETTINGS',
-                        'FileGroupSettings' => [
-                            'Destination' => null, // to be set dynamically
-                            'DestinationSettings' => [
-                                'S3Settings' => [
-                                    'AccessControl' => [
-                                        'CannedAcl' => 'PUBLIC_READ',
-                                    ],
-                                ],
-                            ],
-                        ],
-                    ],
-                ],
-                [
                     'CustomName' => 'MP4',
                     'Name' => 'File Group',
                     'Outputs' => [

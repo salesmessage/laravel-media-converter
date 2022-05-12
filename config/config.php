@@ -4,7 +4,7 @@ return [
     /*
      * The fully qualified class name of the "media" model.
      */
-    'media_model' => \App\Models\Media::class,
+    'media_model' => env('MEDIACONVERT_TRACK_MEDIA_MODEL', null),
 
     /**
      * IAM Credentials from AWS.
@@ -59,7 +59,7 @@ return [
      * Note: in case you *do* want to track media conversions, you will need to execute the
      * migration as part of the package.
      */
-    'track_media_conversions' => true,
+    'track_media_conversions' => env('MEDIACONVERT_TRACK_MEDIA_CONVERSIONS', false),
 
     /**
      * If track_media_conversions is set to true, you may specify the events you would like to fire/track.
@@ -68,7 +68,15 @@ return [
      * Read more about MediaConvert conversion statuses here:
      * https://docs.aws.amazon.com/mediaconvert/latest/ug/mediaconvert_cwe_events.html
      */
-    'statuses_to_track' => ['complete', 'error', 'new_warning', 'progressing', 'status_update', 'input_information', 'queue_hop'],
+    'statuses_to_track' => [
+        'complete',
+        'error',
+        'new_warning',
+        'progressing',
+        'status_update',
+        'input_information',
+        'queue_hop'
+    ],
 
     'job_settings' => \Meema\MediaConverter\Support\DefaultMediaConvertJobSettings::class,
 ];

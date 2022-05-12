@@ -25,7 +25,8 @@
         "php": "^7.3|^8.0",
         "ext-json": "*",
         "aws/aws-php-sns-message-validator": "^1.6",
-        "aws/aws-sdk-php": "^3.173"
+        "aws/aws-sdk-php": "^3.173",
+        "guzzlehttp/guzzle": "*"
     },
     "require-dev": {
         "orchestra/testbench": "^5.0|^6.0",

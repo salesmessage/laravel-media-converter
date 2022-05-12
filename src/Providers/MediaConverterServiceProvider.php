@@ -15,7 +15,7 @@ class MediaConverterServiceProvider extends ServiceProvider
      *
      * @throws \Illuminate\Contracts\Container\BindingResolutionException
      */
-    public function boot()
+    public function boot(): void
     {
         if ($this->app->runningInConsole()) {
             $this->publishes([
@@ -41,7 +41,7 @@ class MediaConverterServiceProvider extends ServiceProvider
     /**
      * Register the application services.
      */
-    public function register()
+    public function register(): void
     {
         $this->mergeConfigFrom(__DIR__.'/../../config/config.php', 'media-converter');
 
@@ -55,7 +55,7 @@ class MediaConverterServiceProvider extends ServiceProvider
      *
      * @return void
      */
-    protected function registerMediaConverterManager()
+    protected function registerMediaConverterManager(): void
     {
         $this->app->singleton('media-converter', function ($app) {
             return new MediaConverterManager($app);
@@ -67,7 +67,7 @@ class MediaConverterServiceProvider extends ServiceProvider
      *
      * @return void
      */
-    protected function registerAliases()
+    protected function registerAliases(): void
     {
         $this->app->alias(MediaConvert::class, 'MediaConvert');
     }

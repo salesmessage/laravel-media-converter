@@ -4,8 +4,9 @@ namespace Meema\MediaConverter\Http\Controllers;
 
 use Aws\Sns\Message;
 use Illuminate\Routing\Controller;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use GuzzleHttp\Client;
+use Illuminate\Http\Response;
 use Meema\MediaConverter\Events\ConversionHasCompleted;
 use Meema\MediaConverter\Events\ConversionHasError;
 use Meema\MediaConverter\Events\ConversionHasInputInformation;
@@ -24,7 +25,7 @@ class IncomingWebhookController extends Controller
     /**
      * @throws \Exception
      */
-    public function __invoke()
+    public function __invoke(): Response
     {
         try {
             $message = $this->ensureSubscriptionIsConfirmed();
@@ -34,7 +35,7 @@ class IncomingWebhookController extends Controller
             if (! array_key_exists('detail', $message)) {
                 Log::alert('incoming MediaConvert webhook: "detail"-key does not exist');
 
-                return;
+                return $this->response();
             }
 
             $detail = $message['detail'];
@@ -42,15 +43,22 @@ class IncomingWebhookController extends Controller
             if (! array_key_exists('status', $detail)) {
                 Log::alert('incoming MediaConvert webhook: "status"-key does not exist');
 
-                return;
+                return $this->response();
             }
 
             $status = $detail['status'];
 
             $this->fireEventFor($status, $message);
         } catch (\Exception $e) {
-            throw new \Exception($e);
+            Log::error($e);
         }
+
+        return $this->response();
+    }
+
+    protected function response(): Response
+    {
+        return new Response(null, Response::HTTP_OK);
     }
 
     /**
@@ -59,7 +67,7 @@ class IncomingWebhookController extends Controller
      *
      * @throws \Exception
      */
-    public function fireEventFor($status, $message)
+    public function fireEventFor($status, $message): void
     {
         switch ($status) {
             case 'PROGRESSING':
@@ -96,7 +104,8 @@ class IncomingWebhookController extends Controller
         $message = Message::fromRawPostData()->toArray();
 
         if (array_key_exists('SubscribeURL', $message)) {
-            Http::get($message['SubscribeURL']);
+
+            (new Client())->get($message['SubscribeURL']);
         }
 
         return json_decode($message['Message'], true);

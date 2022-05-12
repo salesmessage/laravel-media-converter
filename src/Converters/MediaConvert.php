@@ -4,30 +4,28 @@ namespace Meema\MediaConverter\Converters;
 
 use Aws\Credentials\Credentials;
 use Aws\MediaConvert\MediaConvertClient;
+use Aws\Result;
 use Meema\MediaConverter\Contracts\Converter;
 
 class MediaConvert implements Converter
 {
     /**
-     * Client instance of AWS MediaConvert.
-     *
-     * @var \Aws\MediaConvert\MediaConvertClient
-     */
-    protected $client;
-
-    /**
      * The MediaConvert job's settings.
      *
      * @var array
      */
-    public array $jobSettings;
+    public $jobSettings;
+    /**
+     * Client instance of AWS MediaConvert.
+     *
+     * @var MediaConvertClient
+     */
+    protected $client;
 
     /**
      * Construct converter.
-     *
-     * @param  \Aws\MediaConvert\MediaConvertClient  $client
      */
-    public function __construct(MediaConvertClient $client)
+    public function __construct()
     {
         $config = config('media-converter');
 
@@ -44,7 +42,7 @@ class MediaConvert implements Converter
     /**
      * Get the MediaConvert Client.
      *
-     * @return \Aws\MediaConvert\MediaConvertClient
+     * @return MediaConvertClient
      */
     public function getClient(): MediaConvertClient
     {
@@ -54,9 +52,9 @@ class MediaConvert implements Converter
     /**
      * Sets the path of the file input.
      *
-     * @param  string  $path  - represents the S3 path, e.g path/to/file.mp4
-     * @param  string|null  $bucket  - reference to the S3 Bucket name. Defaults to config value.
-     * @return \Meema\MediaConverter\Converters\MediaConvert
+     * @param string $path - represents the S3 path, e.g path/to/file.mp4
+     * @param string|null $bucket - reference to the S3 Bucket name. Defaults to config value.
+     * @return MediaConvert
      */
     public function path(string $path, $bucket = null): MediaConvert
     {
@@ -66,61 +64,40 @@ class MediaConvert implements Converter
     }
 
     /**
-     * Generates a web optimized MP4.
+     * Sets the S3 input file path.
      *
-     * @return \Meema\MediaConverter\Converters\MediaConvert
+     * @param string $s3Path
+     * @param string|null $s3bucket
      */
-    public function optimizeForWeb(): MediaConvert
+    protected function setFileInput(string $s3Path, ?string $s3bucket = null): void
     {
-        // At the moment, we can simply return $this, because this method is simply used for readability purposes.
-        // The "default job" has all the proper settings already to generate a web optimized mp4.
-        return $this;
-    }
+        $fileInput = sprintf(
+            's3://%s/%s/%s',
+            $s3bucket ?? config('filesystems.disks.s3.bucket'),
+            trim(config('filesystems.disks.s3.root'), '/'),
+            $s3Path
+        );
 
-    /**
-     * Sets the settings required to generate the proper amount of thumbnails.
-     *
-     * @param  int  $framerateNumerator
-     * @param  int  $framerateDenominator
-     * @param  int  $maxCaptures
-     * @param  int|null  $width
-     * @param  string|null  $nameModifier
-     * @param  int  $imageQuality
-     * @return \Meema\MediaConverter\Converters\MediaConvert
-     */
-    public function withThumbnails(int $framerateNumerator, int $framerateDenominator, int $maxCaptures, $width = null, $nameModifier = null, $imageQuality = 80): MediaConvert
-    {
-        $this->jobSettings['OutputGroups'][0]['Outputs'][0]['VideoDescription']['CodecSettings']['FrameCaptureSettings'] = [
-            'FramerateNumerator' => $framerateNumerator,
-            'FramerateDenominator' => $framerateDenominator,
-            'MaxCaptures' => $maxCaptures,
-            'Quality' => $imageQuality,
-        ];
-
-        if ($width) {
-            $this->jobSettings['OutputGroups'][0]['Outputs'][0]['VideoDescription']['Width'] = $width;
-        }
-
-        if ($nameModifier) {
-            $this->jobSettings['OutputGroups'][0]['Outputs'][0]['NameModifier'] = $nameModifier;
-        }
-
-        return $this;
+        $this->jobSettings['Inputs'][0]['FileInput'] = $fileInput;
     }
 
     /**
      * Sets the S3 path & executes the job.
      *
-     * @param  string  $s3Path
-     * @param  string|null  $s3bucket
-     * @return \Meema\MediaConverter\Converters\MediaConvert
+     * @param string $s3Path
+     * @param string|null $s3bucket
+     * @return MediaConvert
      */
     public function saveTo(string $s3Path, $s3bucket = null): MediaConvert
     {
-        $destination = 's3://'.($s3bucket ?? config('filesystems.disks.s3.bucket')).'/'.$s3Path;
+        $destination = sprintf(
+            's3://%s/%s/%s',
+            $s3bucket ?? config('filesystems.disks.s3.bucket'),
+            trim(config('filesystems.disks.s3.root'), '/'),
+            $s3Path
+        );
 
-        $this->jobSettings['OutputGroups'][0]['OutputGroupSettings']['FileGroupSettings']['Destination'] = $destination.'/thumbnails/';
-        $this->jobSettings['OutputGroups'][1]['OutputGroupSettings']['FileGroupSettings']['Destination'] = $destination.'/mp4/';
+        $this->jobSettings['OutputGroups'][0]['OutputGroupSettings']['FileGroupSettings']['Destination'] = $destination;
 
         return $this;
     }
@@ -128,10 +105,10 @@ class MediaConvert implements Converter
     /**
      * Cancels an active job.
      *
-     * @param  string  $id
-     * @return \Aws\Result
+     * @param string $id
+     * @return Result
      */
-    public function cancelJob(string $id)
+    public function cancelJob(string $id): Result
     {
         return $this->client->cancelJob([
             'Id' => $id,
@@ -141,12 +118,12 @@ class MediaConvert implements Converter
     /**
      * Creates a new job based on the settings passed.
      *
-     * @param  array  $settings
-     * @param  array  $metaData
-     * @param  int  $priority
-     * @return \Aws\Result
+     * @param array $settings
+     * @param array $metaData
+     * @param int $priority
+     * @return Result
      */
-    public function createJob(array $settings = [], array $metaData = [], array $tags = [], int $priority = 0)
+    public function createJob(array $settings = [], array $metaData = [], array $tags = [], int $priority = 0): Result
     {
         if (empty($settings)) {
             $settings = $this->jobSettings;
@@ -163,13 +140,25 @@ class MediaConvert implements Converter
         ]);
     }
 
+    protected function getStatusUpdateInterval(): string
+    {
+        $webhookInterval = config('media-converter.webhook_interval');
+        $allowedValues = [10, 12, 15, 20, 30, 60, 120, 180, 240, 300, 360, 420, 480, 540, 600];
+
+        if (in_array($webhookInterval, [$allowedValues])) {
+            return 'SECONDS_' . $webhookInterval;
+        }
+
+        return 'SECONDS_60'; // gracefully default to this value, in case the config value is missing or incorrect
+    }
+
     /**
      * Gets the job.
      *
-     * @param  string  $id
-     * @return \Aws\Result
+     * @param string $id
+     * @return Result
      */
-    public function getJob(string $id)
+    public function getJob(string $id): Result
     {
         return $this->client->getJob([
             'Id' => $id,
@@ -179,36 +168,11 @@ class MediaConvert implements Converter
     /**
      * Lists all of the jobs based on your options provided.
      *
-     * @param  array  $options
-     * @return \Aws\Result
+     * @param array $options
+     * @return Result
      */
-    public function listJobs(array $options)
+    public function listJobs(array $options): Result
     {
         return $this->client->listJobs($options);
-    }
-
-    protected function getStatusUpdateInterval(): string
-    {
-        $webhookInterval = config('media-converter.webhook_interval');
-        $allowedValues = [10, 12, 15, 20, 30, 60, 120, 180, 240, 300, 360, 420, 480, 540, 600];
-
-        if (in_array($webhookInterval, [$allowedValues])) {
-            return 'SECONDS_'.$webhookInterval;
-        }
-
-        return 'SECONDS_60'; // gracefully default to this value, in case the config value is missing or incorrect
-    }
-
-    /**
-     * Sets the S3 input file path.
-     *
-     * @param  string  $path
-     * @param  string|null  $bucket
-     */
-    protected function setFileInput(string $path, $bucket = null)
-    {
-        $fileInput = 's3://'.($bucket ?? config('filesystems.disks.s3.bucket')).'/'.$path;
-
-        $this->jobSettings['Inputs'][0]['FileInput'] = $fileInput;
     }
 }
